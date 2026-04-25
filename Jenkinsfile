@@ -5,7 +5,7 @@ pipeline {
         IMAGE_NAME = 'zoople-devops-workshop-vijin:latest'
         CONTAINER_NAME = 'vijin-app'
         APP_PORT = '3000'
-        DOMAIN = 'workshop.zoople.in'
+        DOMAIN = 'vijin.workshop.zoople.in'
         NGINX_DIR = '/var/lib/jenkins/nginx'
     }
 
