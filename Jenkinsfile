@@ -2,15 +2,13 @@ pipeline {
     agent any
 
     environment {
-        USERNAME = 'vijin'
-        IMAGE = "zoople-devops-workshop-${USERNAME}"
-        DOMAIN = "${USERNAME}.workshop.zoople.in"
-        CONTAINER = "${USERNAME}-app"
-        PORT = "3000"
+        IMAGE_NAME = 'zoople-devops-workshop-vijin:latest'
+        CONTAINER_NAME = 'vijin-app'
+        APP_PORT = '3000'
+        NGINX_DIR = '/home/ubuntu/nginx'
     }
 
     stages {
-
         stage('Checkout Code') {
             steps {
                 checkout scm
@@ -19,37 +17,46 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh "docker build -t $IMAGE:latest ."
-                }
+                sh '''
+                docker build -t $IMAGE_NAME .
+                '''
             }
         }
 
         stage('Deploy Container') {
             steps {
-                script {
-                    sh """
-                    docker rm -f $CONTAINER || true
+                sh '''
+                docker rm -f $CONTAINER_NAME || true
 
-                    docker run -d \
-                      --name $CONTAINER \
-                      --network nginx-network \
-                      -p $PORT:$PORT \
-                      $IMAGE:latest
-                    """
-                }
+                docker network inspect nginx-network >/dev/null 2>&1 || docker network create nginx-network
+
+                docker run -d \
+                  --name $CONTAINER_NAME \
+                  --network nginx-network \
+                  -p $APP_PORT:$APP_PORT \
+                  --restart unless-stopped \
+                  $IMAGE_NAME
+                '''
             }
         }
 
-        stage('Setup Nginx + SSL') {
+        stage('Setup Nginx') {
             steps {
-                script {
-                    sh """
-                    cd ~/nginx
-                    ./nginx.sh $DOMAIN $CONTAINER $PORT
-                    """
-                }
+                sh '''
+                cd $NGINX_DIR
+                docker compose up -d
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment completed successfully'
+        }
+
+        failure {
+            echo '❌ Deployment failed'
         }
     }
 }
